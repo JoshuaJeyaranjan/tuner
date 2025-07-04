@@ -151,8 +151,6 @@ const HomePage = () => {
           </>
         )}
       </div>
-
-      <Headstock instrument={instrument} />
     </div>
   );
 };

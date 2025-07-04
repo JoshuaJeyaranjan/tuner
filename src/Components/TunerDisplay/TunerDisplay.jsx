@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo } from 'react';
-import './TunerDisplay.scss';
-import { Headstock } from '../HeadStock';
-import { useArcSegments } from '../../hooks/useArcSegments';
-import { usePointerShape } from '../../hooks/usePointerShape';
-import { useNoteDetector } from '../../hooks/useNoteDetector';
-import { NOTE_FREQUENCIES } from '../../constants/tuningData';
+import React, { useEffect, useMemo, useState } from "react";
+import "./TunerDisplay.scss";
+import { Headstock } from "../HeadStock";
+import { useArcSegments } from "../../hooks/useArcSegments";
+import { usePointerShape } from "../../hooks/usePointerShape";
+import { useNoteDetector } from "../../hooks/useNoteDetector";
+import { NOTE_FREQUENCIES } from "../../constants/tuningData";
 import {
   ARC_SEGMENTS,
   ARC_RADIUS_INNER,
@@ -17,20 +17,21 @@ import {
   IN_TUNE_HZ_TOLERANCE,
   HZ_DEVIATION_FOR_FULL_SCALE,
   YELLOW_RANGE,
-} from '../../constants/tuner';
+} from "../../constants/tuner";
 
 const TunerDisplay = ({
   frequency = 0,
   note = null,
   cents = 0,
-  instrumentName = '',
+  instrumentName = "",
   tuningNotes = [],
 }) => {
+  const [tunedNotes, setTunedNotes] = useState(new Set());
+
   const detected = useNoteDetector(frequency);
   const displayNote = detected?.note || note;
   const displayCents = detected?.cents ?? cents;
 
-  // --- 1. Determine closest tuning note
   const matchedTuningNote = useMemo(() => {
     if (!frequency || !tuningNotes.length) return null;
     return tuningNotes.reduce((closest, currNote) => {
@@ -44,16 +45,30 @@ const TunerDisplay = ({
 
   const targetNoteFrequency = NOTE_FREQUENCIES[matchedTuningNote] || 0;
   const hzDifference = frequency - targetNoteFrequency;
-  const isInTune = targetNoteFrequency > 0 && Math.abs(hzDifference) <= IN_TUNE_HZ_TOLERANCE;
+  const isInTune =
+    targetNoteFrequency > 0 && Math.abs(hzDifference) <= IN_TUNE_HZ_TOLERANCE;
+
+  // Update tuned notes when in tune
+  useEffect(() => {
+    if (isInTune && matchedTuningNote) {
+      setTunedNotes((prev) => {
+        const updated = new Set(prev);
+        updated.add(matchedTuningNote);
+        return updated;
+      });
+    }
+  }, [isInTune, matchedTuningNote]);
 
   const centerIdx = Math.floor(ARC_SEGMENTS / 2);
   const activeSegmentIdx = (() => {
     if (targetNoteFrequency === 0) return centerIdx;
-    const clamped = Math.max(-HZ_DEVIATION_FOR_FULL_SCALE,
-                             Math.min(HZ_DEVIATION_FOR_FULL_SCALE, hzDifference));
+    const clamped = Math.max(
+      -HZ_DEVIATION_FOR_FULL_SCALE,
+      Math.min(HZ_DEVIATION_FOR_FULL_SCALE, hzDifference)
+    );
     return Math.round(
       ((clamped + HZ_DEVIATION_FOR_FULL_SCALE) * (ARC_SEGMENTS - 1)) /
-      (2 * HZ_DEVIATION_FOR_FULL_SCALE)
+        (2 * HZ_DEVIATION_FOR_FULL_SCALE)
     );
   })();
 
@@ -73,35 +88,48 @@ const TunerDisplay = ({
   const pointer = usePointerShape(frequency, displayCents);
 
   useEffect(() => {
-    console.log('[TunerDisplay]', {
+    console.log("[TunerDisplay]", {
       frequency,
       displayNote,
       displayCents,
       matchedTuningNote,
       targetNoteFrequency,
       isInTune,
+      tunedNotes: Array.from(tunedNotes),
     });
-  }, [frequency, displayNote, displayCents, matchedTuningNote, targetNoteFrequency]);
+  }, [
+    frequency,
+    displayNote,
+    displayCents,
+    matchedTuningNote,
+    targetNoteFrequency,
+    instrumentName,
+    tunedNotes,
+  ]);
 
   return (
     <div className="tuner-display">
       <div className="tuner-header">
         <div className="tuner-freq">
-          {frequency ? `${frequency.toFixed(1)} Hz` : '-- Hz'}
+          {frequency ? `${frequency.toFixed(1)} Hz` : "-- Hz"}
         </div>
         <div className="tuner-mode">{instrumentName}</div>
       </div>
 
       <div className="tuner-expected-hz">
-        Expected: {targetNoteFrequency ? `${targetNoteFrequency.toFixed(2)} Hz (${matchedTuningNote})` : '--'}
+        Expected:{" "}
+        {targetNoteFrequency
+          ? `${targetNoteFrequency.toFixed(2)} Hz (${matchedTuningNote})`
+          : "--"}
       </div>
-      <div className='headstock'>
-      <Headstock
-  instrument={instrumentName}
-  tuningNotes={tuningNotes}
-  targetNoteFrequency={targetNoteFrequency}
-/>
 
+      <div className="headstock">
+        <Headstock
+          instrument={instrumentName.toLowerCase()}
+          tuningNotes={tuningNotes}
+          tunedNotes={tunedNotes}
+          targetNoteFrequency={targetNoteFrequency}
+        />
       </div>
 
       <div className="tuner-arc-container">
@@ -125,15 +153,25 @@ const TunerDisplay = ({
             points={pointer.points}
             fill="#ff3b3b"
             opacity={pointer.opacity}
-            className={`tuner-pointer ${pointer.glowing ? 'pointer-glow' : ''}`}
+            className={`tuner-pointer ${pointer.glowing ? "pointer-glow" : ""}`}
           />
         </svg>
       </div>
 
-      <div className="tuner-note-row" style={{ marginTop: '-10px' }}>
-        <span className="tuner-arrow left" style={{ opacity: displayCents < -TUNING_THRESHOLD ? 1 : 0.3 }}>▶</span>
-        <span className="tuner-note">{displayNote || '--'}</span>
-        <span className="tuner-arrow right" style={{ opacity: displayCents > TUNING_THRESHOLD ? 1 : 0.3 }}>◀</span>
+      <div className="tuner-note-row" style={{ marginTop: "-10px" }}>
+        <span
+          className="tuner-arrow left"
+          style={{ opacity: displayCents < -TUNING_THRESHOLD ? 1 : 0.3 }}
+        >
+          ▶
+        </span>
+        <span className="tuner-note">{displayNote || "--"}</span>
+        <span
+          className="tuner-arrow right"
+          style={{ opacity: displayCents > TUNING_THRESHOLD ? 1 : 0.3 }}
+        >
+          ◀
+        </span>
       </div>
     </div>
   );
