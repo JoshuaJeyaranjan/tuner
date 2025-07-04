@@ -125,10 +125,10 @@ const TunerDisplay = ({
 
       <div className="headstock">
         <Headstock
-          instrument={instrumentName.toLowerCase()}
-          tuningNotes={tuningNotes}
-          tunedNotes={tunedNotes}
-          targetNoteFrequency={targetNoteFrequency}
+        instrument={instrumentName.toLowerCase()}
+        tuningNotes={tuningNotes}
+        tunedNotes={tunedNotes}
+        targetNoteFrequency={targetNoteFrequency}
         />
       </div>
 
@@ -139,7 +139,7 @@ const TunerDisplay = ({
           viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
           className="tuner-arc-svg tuner-arc-tilt"
         >
-          <circle cx={ARC_CENTER_X} cy={ARC_CENTER_Y} r="3" fill="red" />
+          <circle cx={ARC_CENTER_X} cy={ARC_CENTER_Y} r="3" fill="red" display='none' />
           {arcSegments.map(({ key, points, fill, opacity, className }) => (
             <polygon
               key={key}
@@ -159,13 +159,17 @@ const TunerDisplay = ({
       </div>
 
       <div className="tuner-note-row" style={{ marginTop: "-10px" }}>
-        <span
+          <span className="tuner-note">{displayNote || "--"}</span>
+      </div>
+
+      <div className="tuner-note-row arrow-container">
+      <span
           className="tuner-arrow left"
           style={{ opacity: displayCents < -TUNING_THRESHOLD ? 1 : 0.3 }}
         >
           ▶
         </span>
-        <span className="tuner-note">{displayNote || "--"}</span>
+        
         <span
           className="tuner-arrow right"
           style={{ opacity: displayCents > TUNING_THRESHOLD ? 1 : 0.3 }}

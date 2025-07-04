@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { NOTE_FREQUENCIES } from '../constants/tuningData';
-import '../Components/HeadStock.scss'
+import { NOTE_FREQUENCIES } from '../../constants/tuningData';
+
 export function Headstock({ instrument, tuningNotes = [], targetNoteFrequency = 0 }) {
   const [lockedNotes, setLockedNotes] = useState(new Set());
   const currentNoteRef = useRef(null);
@@ -85,7 +85,6 @@ export function Headstock({ instrument, tuningNotes = [], targetNoteFrequency = 
 
   return (
     <svg {...layout.svgProps} className="max-w-full h-auto">
-      {/* Headstock body */}
       <path
         style={{ fill: 'transparent', stroke: '#000', strokeWidth: 2 }}
         d={layout.pathD}
