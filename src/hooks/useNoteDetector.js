@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { NOTE_FREQUENCIES } from "../data/tuningData";
+import { NOTE_FREQUENCIES, INSTRUMENTS_DATA } from "../constants/tuningData";
 
 const getClosestNote = (frequency) => {
   let closestNote = null;
@@ -25,6 +25,8 @@ const getClosestNote = (frequency) => {
   };
 };
 
+
+
 function autoCorrelate(buf, sampleRate) {
   // A simple autocorrelation algorithm
   let SIZE = buf.length;
@@ -37,7 +39,9 @@ function autoCorrelate(buf, sampleRate) {
   rms = Math.sqrt(rms / SIZE);
   if (rms < 0.01) return -1; // Too quiet
 
-  let r1 = 0, r2 = SIZE - 1, threshold = 0.2;
+  let r1 = 0,
+    r2 = SIZE - 1,
+    threshold = 0.2;
   for (let i = 0; i < SIZE / 2; i++) {
     if (Math.abs(buf[i]) < threshold) {
       r1 = i;
@@ -64,7 +68,8 @@ function autoCorrelate(buf, sampleRate) {
 
   let d = 0;
   while (c[d] > c[d + 1]) d++;
-  let maxval = -1, maxpos = -1;
+  let maxval = -1,
+    maxpos = -1;
   for (let i = d; i < SIZE; i++) {
     if (c[i] > maxval) {
       maxval = c[i];
@@ -102,7 +107,9 @@ export function useNoteDetector() {
 
     const start = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
         audioContext = new AudioContext();
         analyser = audioContext.createAnalyser();
         analyser.fftSize = bufferLength;

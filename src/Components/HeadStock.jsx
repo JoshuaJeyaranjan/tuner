@@ -2,7 +2,7 @@ import { useState } from "react";
 
 export function Headstock({ instrument }) {
 
-    console.log(instrument)
+    
 
     const [activeString, setActiveString] = useState(null);
 

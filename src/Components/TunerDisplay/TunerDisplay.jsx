@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import './TunerDisplay.scss';
-
+import { Headstock } from '../HeadStock';
 import { useArcSegments } from '../../hooks/useArcSegments';
 import { usePointerShape } from '../../hooks/usePointerShape';
 import { useNoteDetector } from '../../hooks/useNoteDetector';
-
+import { NOTE_FREQUENCIES } from '../../constants/tuningData';
 import {
   ARC_SEGMENTS,
   ARC_RADIUS_INNER,
@@ -16,28 +16,37 @@ import {
   TUNING_THRESHOLD,
   IN_TUNE_HZ_TOLERANCE,
   HZ_DEVIATION_FOR_FULL_SCALE,
-  YELLOW_RANGE
+  YELLOW_RANGE,
 } from '../../constants/tuner';
 
 const TunerDisplay = ({
   frequency = 0,
   note = null,
   cents = 0,
-  targetNoteName = '',
-  targetNoteFrequency = 0,
   instrumentName = '',
+  tuningNotes = [],
 }) => {
-  // 1. Smooth note detection from mic
   const detected = useNoteDetector(frequency);
   const displayNote = detected?.note || note;
   const displayCents = detected?.cents ?? cents;
 
-  // 2. Tuning logic
-  const centerIdx = Math.floor(ARC_SEGMENTS / 2);
-  const hzDifference = frequency - targetNoteFrequency;
-  const isInTune = targetNoteFrequency > 0 &&
-    Math.abs(hzDifference) <= IN_TUNE_HZ_TOLERANCE;
+  // --- 1. Determine closest tuning note
+  const matchedTuningNote = useMemo(() => {
+    if (!frequency || !tuningNotes.length) return null;
+    return tuningNotes.reduce((closest, currNote) => {
+      const currFreq = NOTE_FREQUENCIES[currNote];
+      const closestFreq = NOTE_FREQUENCIES[closest];
+      return Math.abs(currFreq - frequency) < Math.abs(closestFreq - frequency)
+        ? currNote
+        : closest;
+    }, tuningNotes[0]);
+  }, [frequency, tuningNotes]);
 
+  const targetNoteFrequency = NOTE_FREQUENCIES[matchedTuningNote] || 0;
+  const hzDifference = frequency - targetNoteFrequency;
+  const isInTune = targetNoteFrequency > 0 && Math.abs(hzDifference) <= IN_TUNE_HZ_TOLERANCE;
+
+  const centerIdx = Math.floor(ARC_SEGMENTS / 2);
   const activeSegmentIdx = (() => {
     if (targetNoteFrequency === 0) return centerIdx;
     const clamped = Math.max(-HZ_DEVIATION_FOR_FULL_SCALE,
@@ -48,7 +57,6 @@ const TunerDisplay = ({
     );
   })();
 
-  // 3. Arc segments for the tuner ring
   const arcSegments = useArcSegments({
     notes: Array.from({ length: ARC_SEGMENTS }, (_, i) => i),
     activeIndex: activeSegmentIdx,
@@ -62,23 +70,19 @@ const TunerDisplay = ({
     yellowRange: YELLOW_RANGE,
   });
 
-  // 4. Tuner pointer
   const pointer = usePointerShape(frequency, displayCents);
 
-  // 5. Debug logging
   useEffect(() => {
     console.log('[TunerDisplay]', {
       frequency,
       displayNote,
       displayCents,
-      isInTune,
-      targetNoteName,
+      matchedTuningNote,
       targetNoteFrequency,
-      activeSegmentIdx,
+      isInTune,
     });
-  }, [frequency, displayNote, displayCents, isInTune, targetNoteName, targetNoteFrequency, activeSegmentIdx]);
+  }, [frequency, displayNote, displayCents, matchedTuningNote, targetNoteFrequency]);
 
-  // 6. Render
   return (
     <div className="tuner-display">
       <div className="tuner-header">
@@ -89,7 +93,15 @@ const TunerDisplay = ({
       </div>
 
       <div className="tuner-expected-hz">
-        Expected: {targetNoteFrequency ? `${targetNoteFrequency.toFixed(2)} Hz (${targetNoteName})` : '--'}
+        Expected: {targetNoteFrequency ? `${targetNoteFrequency.toFixed(2)} Hz (${matchedTuningNote})` : '--'}
+      </div>
+      <div className='headstock'>
+      <Headstock
+  instrument={instrumentName}
+  tuningNotes={tuningNotes}
+  targetNoteFrequency={targetNoteFrequency}
+/>
+
       </div>
 
       <div className="tuner-arc-container">
@@ -99,10 +111,7 @@ const TunerDisplay = ({
           viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
           className="tuner-arc-svg tuner-arc-tilt"
         >
-          {/* Debug dot */}
           <circle cx={ARC_CENTER_X} cy={ARC_CENTER_Y} r="3" fill="red" />
-
-          {/* Arc segments */}
           {arcSegments.map(({ key, points, fill, opacity, className }) => (
             <polygon
               key={key}
@@ -112,8 +121,6 @@ const TunerDisplay = ({
               className={className}
             />
           ))}
-
-          {/* Pointer */}
           <polygon
             points={pointer.points}
             fill="#ff3b3b"
@@ -124,19 +131,9 @@ const TunerDisplay = ({
       </div>
 
       <div className="tuner-note-row" style={{ marginTop: '-10px' }}>
-        <span
-          className="tuner-arrow left"
-          style={{ opacity: displayCents < -TUNING_THRESHOLD ? 1 : 0.3 }}
-        >
-          ▶
-        </span>
+        <span className="tuner-arrow left" style={{ opacity: displayCents < -TUNING_THRESHOLD ? 1 : 0.3 }}>▶</span>
         <span className="tuner-note">{displayNote || '--'}</span>
-        <span
-          className="tuner-arrow right"
-          style={{ opacity: displayCents > TUNING_THRESHOLD ? 1 : 0.3 }}
-        >
-          ◀
-        </span>
+        <span className="tuner-arrow right" style={{ opacity: displayCents > TUNING_THRESHOLD ? 1 : 0.3 }}>◀</span>
       </div>
     </div>
   );

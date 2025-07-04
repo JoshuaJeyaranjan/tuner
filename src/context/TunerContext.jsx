@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
-import { INSTRUMENTS_DATA } from '../data/tuningData';
+import { INSTRUMENTS_DATA } from '../constants/tuningData';
 import { useNoteDetector } from '../hooks/useNoteDetector';
 
 const TunerContext = createContext();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './HomePage.scss';
 import TunerDisplay from '../../Components/TunerDisplay/TunerDisplay';
-import { NOTE_FREQUENCIES, INSTRUMENTS_DATA } from '../../data/tuningData';
+import { NOTE_FREQUENCIES, INSTRUMENTS_DATA } from '../../constants/tuningData';
 import { Headstock } from '../../Components/HeadStock';
 import { useTuner } from '../../context/TunerContext';
 
@@ -136,6 +136,7 @@ const HomePage = () => {
         ) : (
           <>
             <TunerDisplay
+              tuningNotes={tuningNotes}
               note={note}
               cents={cents}
               frequency={frequency}

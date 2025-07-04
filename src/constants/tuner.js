@@ -17,3 +17,4 @@ export const IN_TUNE_HZ_TOLERANCE = 2;
 
 export const SVG_WIDTH = 320;
 export const SVG_HEIGHT = 190;
+
