@@ -1,50 +1,82 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from "react";
 
 /**
- * Tracks notes that have been sustained within a frequency tolerance.
+ * useSustainedFrequency
+ * Locks a note only if it's held inside tolerance for a sustained duration,
+ * and uses hysteresis to avoid jitter.
  *
- * @param {number} currentFrequency - The currently detected frequency
- * @param {number} targetFrequency - The target frequency to lock
- * @param {number} tolerance - Allowed deviation in Hz (default: 0.5Hz)
- * @param {number} sustainTime - Time in ms frequency must stay within tolerance
- * @param {Set<number>} [initialLocked] - Optional initial locked frequencies
- *
+ * @param {number} frequency - Current detected frequency
+ * @param {number[]} targetFrequencies - Array of target note freqs (per string)
+ * @param {number} toleranceHz - Allowed tolerance around each target (Hz)
+ * @param {number} sustainMs - Duration required to sustain inside tolerance
+ * @param {number} requiredFrames - How many consecutive frames needed before lock
  * @returns {Set<number>} lockedFrequencies
  */
 export function useSustainedFrequency(
-  currentFrequency,
-  targetFrequency,
-  tolerance = 0.5,
-  sustainTime = 1000,
-  initialLocked = new Set()
+  frequency,
+  targetFrequencies = [],
+  toleranceHz = 1,
+  sustainMs = 1500,
+  requiredFrames = 5
 ) {
-  const [locked, setLocked] = useState(initialLocked);
-  const timerRef = useRef(null);
-  const prevInRangeRef = useRef(false);
+  const [locked, setLocked] = useState(new Set());
 
-  const inRange = targetFrequency && currentFrequency
-    ? Math.abs(currentFrequency - targetFrequency) <= tolerance
-    : false;
+  // per-target tracking
+  const trackers = useRef(
+    targetFrequencies.map(() => ({
+      insideFrames: 0,    // consecutive hits inside tolerance
+      lastTime: null,     // when sustain started
+      isLocked: false,
+    }))
+  );
 
   useEffect(() => {
-    // Clear previous timer if out of range
-    if (!inRange) {
-      clearTimeout(timerRef.current);
-      prevInRangeRef.current = false;
-      return;
-    }
+    if (!frequency || targetFrequencies.length === 0) return;
 
-    // Start timer if it just entered the range
-    if (!prevInRangeRef.current) {
-      prevInRangeRef.current = true;
-      timerRef.current = setTimeout(() => {
-        setLocked((prev) => new Set(prev).add(targetFrequency));
-        prevInRangeRef.current = false;
-      }, sustainTime);
-    }
+    const now = performance.now();
 
-    return () => clearTimeout(timerRef.current);
-  }, [inRange, targetFrequency, sustainTime]);
+    trackers.current = targetFrequencies.map((target, i) => {
+      const t = trackers.current[i] || {
+        insideFrames: 0,
+        lastTime: null,
+        isLocked: false,
+      };
+
+      const diff = Math.abs(frequency - target);
+
+      // thresholds
+      const insideTolerance = diff <= toleranceHz;
+      const unlockThreshold = toleranceHz * 1.5;
+
+      if (t.isLocked) {
+        // Stay locked unless we drift far out
+        if (diff > unlockThreshold) {
+          return { ...t, isLocked: false, insideFrames: 0, lastTime: null };
+        }
+        return t; // still locked
+      } else {
+        if (insideTolerance) {
+          const started = t.lastTime ?? now;
+          const sustained = now - started >= sustainMs;
+          const consecutive = t.insideFrames + 1;
+
+          if (sustained && consecutive >= requiredFrames) {
+            return { ...t, isLocked: true, insideFrames: consecutive, lastTime: now };
+          }
+          return { ...t, insideFrames: consecutive, lastTime: started };
+        } else {
+          // reset if out of tolerance
+          return { ...t, insideFrames: 0, lastTime: null };
+        }
+      }
+    });
+
+    // Update locked set
+    const newLocked = new Set(
+      targetFrequencies.filter((_, i) => trackers.current[i].isLocked)
+    );
+    setLocked(newLocked);
+  }, [frequency, targetFrequencies, toleranceHz, sustainMs, requiredFrames]);
 
   return locked;
 }

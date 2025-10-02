@@ -1,27 +1,58 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { NOTE_FREQUENCIES } from '../../constants/tuningData';
-import { useSustainedFrequency} from '../../hooks/useSustainedFrequency';
-export default function Headstock({ instrument, tuningNotes = [], targetNoteFrequency = 0, frequency = 0,  }) {
+import { use, useEffect, useMemo, useRef, useState } from "react";
+import { NOTE_FREQUENCIES } from "../../constants/tuningData";
+import { useSustainedFrequency } from "../../hooks/useSustainedFrequency"; // Your hook
+
+export default function HeadStock({
+  instrument,
+  frequency,
+  tuningNotes = [],
+  targetNoteFrequency = 0,
+  targetNoteFrequencies = [],
+  currentFrequencies = [],
+}) {
+  const [lockedNotes, setLockedNotes] = useState(new Set());
+
+  // Use the sustained frequency hook for each string
+const lockedFrequencies = useSustainedFrequency(
+  frequency,            // single detected frequency
+  targetNoteFrequencies, // array of string targets
+  2.5,                   // tolerance in Hz
+  800                    // sustain duration in ms
+);
 
 
-  const currentNote = useMemo(() => {
-    if (!targetNoteFrequency) return null;
-    return tuningNotes.find((note) => NOTE_FREQUENCIES[note] === targetNoteFrequency) || null;
-  }, [targetNoteFrequency, tuningNotes]);
 
-const lockedFrequencies = useSustainedFrequency(frequency, targetNoteFrequency, 0.5, 1000);
-const isLocked = (note) => {
-  const noteFreq = NOTE_FREQUENCIES[note];
-  return lockedFrequencies.has(noteFreq);
-};
-
-
+  // Arrange peg layout: left/right split
   const pegLayout = useMemo(() => {
     const half = Math.ceil(tuningNotes.length / 2);
     const left = tuningNotes.slice(0, half).reverse();
     const right = tuningNotes.slice(half);
     return [...left, ...right];
   }, [tuningNotes]);
+
+  //merge current locks into permentant locked notes 
+
+  useEffect(() => {
+    if (lockedFrequencies.size > 0) {
+      setLockedNotes((prev) => {
+        const updated = new Set(prev);
+        lockedFrequencies.forEach((freq) => {
+          const matched = tuningNotes.find((n) => NOTE_FREQUENCIES[n] === freq);
+          if (matched) updated.add(matched);
+        });
+        return updated;
+      });
+    }
+  }, [lockedFrequencies, tuningNotes]);
+
+  const isLocked = (note) => lockedNotes.has(note); 
+
+  // // Clear locks when tuning changes
+  // useEffect(() => {
+  //   setLockedNotes(new Set());
+  // }, [tuningNotes]);
+
+  // Layout templates for different instruments
   const layouts = {
     guitar: {
       svgProps: { width: '400', height: '500', viewBox: '0 0 210 297' },
@@ -105,43 +136,41 @@ const isLocked = (note) => {
   };
 
   const layout = layouts[instrument];
+
   if (!layout || pegLayout.length !== layout.pegs.length) {
     return <div>Graphics coming soon...</div>;
   }
 
   return (
     <svg {...layout.svgProps} className="max-w-full h-auto">
-      <path
-        style={{ fill: 'transparent', stroke: '#000', strokeWidth: 2 }}
-        d={layout.pathD}
-      />
+      {/* Headstock outline */}
+      <path d={layout.pathD} style={{ fill: "transparent", stroke: "#000", strokeWidth: 2 }} />
 
       {/* Pegs */}
       {pegLayout.map((note, i) => {
         const peg = layout.pegs[i];
-        const isActive = currentNote === note;
-        const isGreen = isLocked(note);
+        const active = NOTE_FREQUENCIES[note] === targetNoteFrequency;
+        const locked = isLocked(note);
 
         return (
           <g key={note}>
             <ellipse
-              id={`peg-${i + 1}`}
-              style={{
-                fill: isGreen ? '#10B981' : isActive ? '#a7f3d0' : 'transparent',
-                stroke: isGreen || isActive ? '#10B981' : '#000000',
-                strokeWidth: 1.5,
-                cursor: 'pointer',
-              }}
               cx={peg.cx}
               cy={peg.cy}
               rx="6.62"
               ry="10.41"
+              style={{
+                fill: locked ? "#10B981" : active ? "#a7f3d0" : "transparent",
+                stroke: locked || active ? "#10B981" : "#000000",
+                strokeWidth: 1.5,
+                cursor: "pointer",
+              }}
             />
             <text
               x={peg.cx}
               y={peg.cy + 20}
               textAnchor="middle"
-              style={{ fontSize: '10px', fill: '#000' }}
+              style={{ fontSize: "10px", fill: "#000" }}
             >
               {note}
             </text>
@@ -150,11 +179,7 @@ const isLocked = (note) => {
       })}
 
       {/* Brand text */}
-      <text
-        style={{ fontSize: '8.5px', letterSpacing: '2.1px', fill: '#000000' }}
-        x="81.355515"
-        y="71.895561"
-      >
+      <text x="81.355515" y="71.895561" style={{ fontSize: "8.5px", letterSpacing: "2.1px", fill: "#000" }}>
         DELUXE
       </text>
     </svg>
