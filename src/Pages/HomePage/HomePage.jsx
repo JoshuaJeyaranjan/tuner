@@ -104,6 +104,7 @@ const HomePage = () => {
               targetNoteFrequency={currentTargetNoteFrequency}
               isAnalyzing={frequency > 0}
               instrumentName={INSTRUMENTS_DATA[instrument].name}
+              instrument={instrument}
             />
             <div className="status-message">
               {/* {frequency > 0 ? '🎵 Detecting audio...' : 'Waiting for signal...'} */}

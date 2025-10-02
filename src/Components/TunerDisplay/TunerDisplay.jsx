@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./TunerDisplay.scss";
-import { Headstock } from "../HeadStock";
+import HeadStock from '../../Components/HeadStock/HeadStock'
 import { useArcSegments } from "../../hooks/useArcSegments";
 import { usePointerShape } from "../../hooks/usePointerShape";
 import { useNoteDetector } from "../../hooks/useNoteDetector";
@@ -24,6 +24,7 @@ const TunerDisplay = ({
   note = null,
   cents = 0,
   instrumentName = "",
+  instrument = "",  
   tuningNotes = [],
 }) => {
   const [tunedNotes, setTunedNotes] = useState(new Set());
@@ -105,6 +106,7 @@ const TunerDisplay = ({
     targetNoteFrequency,
     instrumentName,
     tunedNotes,
+    
   ]);
 
   return (
@@ -124,11 +126,15 @@ const TunerDisplay = ({
       </div>
 
       <div className="headstock">
-        <Headstock
-        instrument={instrumentName.toLowerCase()}
+        <HeadStock
+        
         tuningNotes={tuningNotes}
         tunedNotes={tunedNotes}
         targetNoteFrequency={targetNoteFrequency}
+          targetNoteFrequencies={tuningNotes.map(note => NOTE_FREQUENCIES[note])}
+  currentFrequencies={tuningNotes.map(() => frequency)}
+        instrument={instrument}
+
         />
       </div>
 
