@@ -45,7 +45,7 @@ const HomePage = () => {
 
   return (
     <div className="home-page">
-      <h1>Instrument Tuner Deluxe</h1>
+      <h1>Tuner Deluxe</h1>
 
 
 

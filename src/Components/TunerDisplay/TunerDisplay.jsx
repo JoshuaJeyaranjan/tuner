@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import './TunerDisplay.scss'
+import FrequencyWaveMeter from '../FrequencyWaveMeter/FrequencyWaveMeter'
 import HeadStock from '../../Components/HeadStock/HeadStock'
 import { useArcSegments } from '../../hooks/useArcSegments'
 import { usePointerShape } from '../../hooks/usePointerShape'
@@ -99,25 +100,25 @@ const TunerDisplay = ({
 
   const pointer = usePointerShape(frequency, displayCents)
 
-  useEffect(() => {
-    console.log('[TunerDisplay]', {
-      frequency,
-      displayNote,
-      displayCents,
-      matchedTuningNote,
-      targetNoteFrequency,
-      isInTune,
-      tunedNotes: Array.from(tunedNotes)
-    })
-  }, [
-    frequency,
-    displayNote,
-    displayCents,
-    matchedTuningNote,
-    targetNoteFrequency,
-    instrumentName,
-    tunedNotes
-  ])
+  // useEffect(() => {
+  //   console.log('[TunerDisplay]', {
+  //     frequency,
+  //     displayNote,
+  //     displayCents,
+  //     matchedTuningNote,
+  //     targetNoteFrequency,
+  //     isInTune,
+  //     tunedNotes: Array.from(tunedNotes)
+  //   })
+  // }, [
+  //   frequency,
+  //   displayNote,
+  //   displayCents,
+  //   matchedTuningNote,
+  //   targetNoteFrequency,
+  //   instrumentName,
+  //   tunedNotes
+  // ])
 
   return (
     <div className='tuner-display'>
@@ -129,11 +130,20 @@ const TunerDisplay = ({
       </div>
 
       <div className='tuner-expected-hz'>
-        Expected:{' '}
         {targetNoteFrequency
-          ? `${targetNoteFrequency.toFixed(2)} Hz (${matchedTuningNote})`
+          ? ` ${matchedTuningNote} = ${targetNoteFrequency.toFixed(2)} Hz`
           : '--'}
       </div>
+
+      {/* Waveform meter */}
+      <FrequencyWaveMeter
+        audioData={detected?.waveform || []}
+        width={SVG_WIDTH}
+        height={80}
+        lineColor={
+          isInTune ? '#00ff00' : hzDifference < 0 ? '#0095ff' : '#ff3b3b'
+        }
+      />
 
       <div className='headstock'>
         <HeadStock
@@ -145,8 +155,8 @@ const TunerDisplay = ({
           )}
           currentFrequencies={tuningNotes.map(() => frequency)}
           instrument={instrument}
-          frequency={frequency} 
-/>
+          frequency={frequency}
+        />
       </div>
 
       <div className='tuner-arc-container'>

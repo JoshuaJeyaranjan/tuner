@@ -2,27 +2,26 @@ import { useMemo } from "react";
 
 export function useArcSegments({
   notes = [],
-  activeIndex = null,
+  activeIndex = null, // user position relative to target
   centerIndex = null,
-  isInTune = false,
-  hzDifference = 0,
   radiusInner = 100,
   radiusOuter = 140,
   centerX = 160,
   centerY = 190,
-  yellowRange = 2,
+  yellowRange = 2, // ±2 around center
 }) {
   const ARC_SEGMENTS = notes.length || 1;
   const totalAngle = 180;
   const segmentAngle = totalAngle / ARC_SEGMENTS;
 
-  // 1️⃣ Compute static geometry only when layout changes
+  // 1️⃣ Static geometry
   const segmentGeometry = useMemo(() => {
     const toRad = (deg) => (Math.PI / 180) * deg;
 
     return Array.from({ length: ARC_SEGMENTS }).map((_, idx) => {
       const angleStart = 180 - idx * segmentAngle;
       const angleEnd = 180 - (idx + 1) * segmentAngle;
+
       const angleStartRad = toRad(angleStart);
       const angleEndRad = toRad(angleEnd);
 
@@ -43,42 +42,34 @@ export function useArcSegments({
     });
   }, [ARC_SEGMENTS, notes, segmentAngle, radiusInner, radiusOuter, centerX, centerY]);
 
-  // 2️⃣ Compute dynamic styles per render
-  const segments = useMemo(() => {
-    return segmentGeometry.map((seg, idx) => {
-      const isCenter = idx === centerIndex;
-      const isActive = idx === activeIndex;
-      const isYellow = idx >= (centerIndex - yellowRange) && idx <= (centerIndex + yellowRange);
+  // 2️⃣ Apply colors
+  return useMemo(() => {
+return segmentGeometry.map((seg, idx) => {
+  const isCenter = idx >= centerIndex - yellowRange && idx <= centerIndex + yellowRange;
 
-      let fillColor = "#666";
-      let opacity = 0.4;
-      let shouldGlow = false;
+  // base defaults
+  let fillColor = idx < centerIndex ? "#0095ff" : "#ff3b3b"; // blue left, red right
+  let opacity = 0.7;
+  let className = "tuner-arc-segment";
 
-      if (isInTune && isCenter) {
-        fillColor = "#00ff00"; // Green
-        opacity = 1;
-        shouldGlow = true;
-      } else if (isActive) {
-        fillColor = hzDifference < 0 ? "#0095ff" : "#ff3b3b"; // Blue or Red
-        opacity = 1;
-      } else if (isYellow) {
-        fillColor = "#ffd700"; // Yellow
-        opacity = 0.7;
-      } else {
-        fillColor = idx < centerIndex ? "#0095ff" : "#ff3b3b";
-        opacity = 0.5;
-      }
+  // middle yellow band
+  if (isCenter) {
+    fillColor = "#ffd700";
+  }
 
-      return {
-        ...seg,
-        fill: fillColor,
-        opacity,
-        className: (shouldGlow ? "glow-highlight " : "") +
-                   (isActive ? "highlighted " : "") +
-                   "tuner-arc-segment",
-      };
-    });
-  }, [segmentGeometry, centerIndex, activeIndex, isInTune, hzDifference, yellowRange]);
+  // 🔹 Active segment: single override for user feedback
+  if (idx === activeIndex) {
+    fillColor = idx < centerIndex ? "#0095ff" : idx > centerIndex ? "#ff3b3b" : "#ffd700";
+    opacity = 1;
+    className += " highlighted"; // append the highlighted class
+  }
 
-  return segments;
+  return {
+    ...seg,
+    fill: fillColor,
+    opacity,
+    className,
+  };
+});
+  }, [segmentGeometry, centerIndex, yellowRange, activeIndex]);
 }

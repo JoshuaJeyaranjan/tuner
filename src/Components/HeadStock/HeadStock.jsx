@@ -17,7 +17,7 @@ const lockedFrequencies = useSustainedFrequency(
   frequency,            // single detected frequency
   targetNoteFrequencies, // array of string targets
   2.5,                   // tolerance in Hz
-  800                    // sustain duration in ms
+  1500                    // sustain duration in ms
 );
 
 
@@ -48,9 +48,9 @@ const lockedFrequencies = useSustainedFrequency(
   const isLocked = (note) => lockedNotes.has(note); 
 
   // // Clear locks when tuning changes
-  // useEffect(() => {
-  //   setLockedNotes(new Set());
-  // }, [tuningNotes]);
+  useEffect(() => {
+    setLockedNotes(new Set());
+  }, [tuningNotes]);
 
   // Layout templates for different instruments
   const layouts = {
@@ -94,10 +94,10 @@ const lockedFrequencies = useSustainedFrequency(
       svgProps: { width: '400', height: '300', viewBox: '0 0 210 200' },
       pathD: 'M 65,150 C 70,120 70,90 60,55 C 90,35 125,35 150,60 C 140,95 135,120 140,150 Z',
       pegs: [
-        { cx: 60, cy: 70 },
-        { cx: 60, cy: 100 },
-        { cx: 150, cy: 70 },
-        { cx: 150, cy: 100 },
+        { cx: 55, cy: 80 },
+        { cx: 55, cy: 120 },
+        { cx: 155, cy: 80 },
+        { cx: 150, cy: 120 },
       ],
     },
   
@@ -117,9 +117,9 @@ const lockedFrequencies = useSustainedFrequency(
       pathD: 'M 64.9,196 C 71.4,145 71.1,108 59.2,59 C 92.3,36 121.3,38 147.3,60 C 136.7,115 134.9,147 141.4,196 Z',
       pegs: [
         { cx: 53, cy: 90 },
-        { cx: 56, cy: 120 },
-        { cx: 150, cy: 90 },
-        { cx: 153, cy: 120 },
+        { cx: 56, cy: 140 },
+        { cx: 153, cy: 90 },
+      { cx: 153, cy: 140 },
       ],
     },
   
@@ -142,46 +142,92 @@ const lockedFrequencies = useSustainedFrequency(
   }
 
   return (
-    <svg {...layout.svgProps} className="max-w-full h-auto">
-      {/* Headstock outline */}
-      <path d={layout.pathD} style={{ fill: "transparent", stroke: "#000", strokeWidth: 2 }} />
+<svg {...layout.svgProps} className="max-w-full h-auto">
+  {/* Headstock outline */}
+  <path
+    d={layout.pathD}
+    style={{
+      fill: "transparent",
+      stroke: "#1f2937", // softer dark gray
+      strokeWidth: 2,
+    }}
+  />
 
-      {/* Pegs */}
-      {pegLayout.map((note, i) => {
-        const peg = layout.pegs[i];
-        const active = NOTE_FREQUENCIES[note] === targetNoteFrequency;
-        const locked = isLocked(note);
+  {/* Pegs */}
+  {pegLayout.map((note, i) => {
+    const peg = layout.pegs[i];
+    const active = NOTE_FREQUENCIES[note] === targetNoteFrequency;
+    const locked = isLocked(note);
 
-        return (
-          <g key={note}>
-            <ellipse
-              cx={peg.cx}
-              cy={peg.cy}
-              rx="6.62"
-              ry="10.41"
-              style={{
-                fill: locked ? "#10B981" : active ? "#a7f3d0" : "transparent",
-                stroke: locked || active ? "#10B981" : "#000000",
-                strokeWidth: 1.5,
-                cursor: "pointer",
-              }}
-            />
-            <text
-              x={peg.cx}
-              y={peg.cy + 20}
-              textAnchor="middle"
-              style={{ fontSize: "10px", fill: "#000" }}
-            >
-              {note}
-            </text>
-          </g>
-        );
-      })}
+    const fillColor = locked
+      ? "url(#lockedGradient)"
+      : active
+      ? "url(#activeGradient)"
+      : "transparent";
 
-      {/* Brand text */}
-      <text x="81.355515" y="71.895561" style={{ fontSize: "8.5px", letterSpacing: "2.1px", fill: "#000" }}>
-        DELUXE
-      </text>
-    </svg>
+    const strokeColor = locked || active ? "#10B981" : "#374151"; // dark gray stroke
+    const textColor = active || locked ? "#10B981" : "#f0f9ff"; // bright if active, otherwise soft
+
+    return (
+      <g key={note}>
+        {/* Peg ellipse */}
+        <ellipse
+          cx={peg.cx}
+          cy={peg.cy}
+          rx="7"
+          ry="11"
+          style={{
+            fill: fillColor,
+            stroke: strokeColor,
+            strokeWidth: 1.5,
+            cursor: "pointer",
+            transition: "all 0.2s ease-in-out",
+            filter: active || locked ? "drop-shadow(0 0 2px #10B981)" : "none",
+          }}
+        />
+        {/* Peg label */}
+        <text
+          x={peg.cx}
+          y={peg.cy + 22}
+          textAnchor="middle"
+          style={{
+            fontSize: "10px",
+            fill: textColor,
+            fontWeight: active || locked ? 600 : 400,
+            textShadow: "0 0 1px #00000033",
+          }}
+        >
+          {note}
+        </text>
+      </g>
+    );
+  })}
+
+  {/* Gradients for pegs */}
+  <defs>
+    <linearGradient id="activeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stopColor="#34d399" />
+      <stop offset="100%" stopColor="#059669" />
+    </linearGradient>
+    <linearGradient id="lockedGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stopColor="#6ee7b7" />
+      <stop offset="100%" stopColor="#10b981" />
+    </linearGradient>
+  </defs>
+
+  {/* Brand text */}
+  <text
+    x="81.355515"
+    y="71.895561"
+    style={{
+      fontSize: "9px",
+      letterSpacing: "2.1px",
+      fill: "#1f2937",
+      fontWeight: 600,
+    }}
+  >
+    DELUXE
+  </text>
+</svg>
   );
 }
