@@ -58,10 +58,7 @@ const HomePage = () => {
               className="mic-button"
             >
               🎤 Enable Microphone
-            </button>
-            <p>
-              Microphone access is needed to detect pitch.
-            </p>
+            </button>     
           </>
         ) : (
           <>
