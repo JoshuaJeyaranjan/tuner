@@ -159,37 +159,43 @@ const TunerDisplay = ({
         />
       </div>
 
-      <div className='tuner-arc-container'>
-        <svg
-          width={SVG_WIDTH}
-          height={SVG_HEIGHT}
-          viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
-          className='tuner-arc-svg tuner-arc-tilt'
-        >
-          <circle
-            cx={ARC_CENTER_X}
-            cy={ARC_CENTER_Y}
-            r='3'
-            fill='red'
-            display='none'
-          />
-          {arcSegments.map(({ key, points, fill, opacity, className }) => (
-            <polygon
-              key={key}
-              points={points}
-              fill={fill}
-              opacity={opacity}
-              className={className}
-            />
-          ))}
-          <polygon
-            points={pointer.points}
-            fill='#ff3b3b'
-            opacity={pointer.opacity}
-            className={`tuner-pointer ${pointer.glowing ? 'pointer-glow' : ''}`}
-          />
-        </svg>
-      </div>
+   <div className="tuner-arc-container">
+  <svg
+    viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} // important: sets coordinate system
+    preserveAspectRatio="xMidYMid meet"
+    className="tuner-arc-svg tuner-arc-tilt"
+  >
+    {/* Invisible reference point */}
+    <circle
+      cx={ARC_CENTER_X}
+      cy={ARC_CENTER_Y}
+      r="3"
+      fill="red"
+      display="none"
+    />
+
+    {/* Arc segments */}
+    {arcSegments.map(({ key, points, fill, opacity, className }) => (
+      <polygon
+        key={key}
+        points={points}
+        fill={fill}
+        opacity={opacity}
+        className={className}
+      />
+    ))}
+
+    
+
+    {/* Optional: gradients for pointer or arc highlights */}
+    <defs>
+      <linearGradient id="pointerGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#ffe066" />
+        <stop offset="100%" stopColor="#ffba00" />
+      </linearGradient>
+    </defs>
+  </svg>
+</div>
 
       <div className='tuner-note-row' style={{ marginTop: '-10px' }}>
         <span className='tuner-note'>{displayNote || '--'}</span>
